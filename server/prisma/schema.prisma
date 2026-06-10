@@ -1,0 +1,327 @@
+// Jewoulingo — unified schema for P2 (Syntax Layering) + P4 (The Outside)
+// plus shared infrastructure (users, words, FSRS review items, Sefaria cache).
+//
+// HARD RULE: every learner-facing artifact carries a `verified` flag.
+// Nothing with verified=false is ever served to a learner (enforced in routes).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Shared: users & progress ─────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  clerkId     String?  @unique // null for anonymous (no-signup) sessions
+  anonymous   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  streakDays  Int      @default(0)
+  lastActive  DateTime @default(now())
+  outsideMastery Float @default(0) // P4 mastery score, 0..1
+  knownWords  UserWord[]
+  reviewItems ReviewItem[]
+}
+
+// The core lexicon. ~300 high-frequency words seeded with isFunction tags;
+// content words accrete as cases are ingested.
+model Word {
+  id            String  @id @default(cuid())
+  plain         String  @unique // normalized, nikud-stripped form
+  vowel         String? // canonical vowelized form (verbatim from Sefaria)
+  gloss         String // primary English gloss
+  altGlosses    String[] // accepted alternates for grading
+  isFunction    Boolean @default(false) // function (structural) vs content
+  frequencyRank Int? // 1 = most frequent across Shas
+  functionColor String? // hex for the function color bar convention
+  users         UserWord[]
+}
+
+model UserWord {
+  id        String   @id @default(cuid())
+  userId    String
+  wordId    String
+  learnedAt DateTime @default(now())
+  strength  Float    @default(0) // rolling mastery 0..1
+  user      User     @relation(fields: [userId], references: [id])
+  word      Word     @relation(fields: [wordId], references: [id])
+
+  @@unique([userId, wordId])
+}
+
+// Unified FSRS scheduling. One row per (user, reviewable thing).
+model ReviewItem {
+  id         String         @id @default(cuid())
+  userId     String
+  kind       ReviewItemKind
+  targetId   String // FK into Formula/FormulaPair/MCQuestion/ClassLesson by kind
+  // FSRS state
+  state      FsrsState @default(NEW)
+  stability  Float     @default(0)
+  difficulty Float     @default(0)
+  due        DateTime  @default(now())
+  lastReview DateTime?
+  reps       Int       @default(0)
+  lapses     Int       @default(0)
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, kind, targetId])
+  @@index([userId, due])
+}
+
+enum ReviewItemKind {
+  FORMULA // P2: a formula skeleton
+  LEIN // P2: a lein challenge (FormulaPair)
+  CONTRAST // P2: near-miss / same-skeleton drill
+  MC // P4: "what happened" multiple choice
+  CLASS // P4: question-type class
+}
+
+enum FsrsState {
+  NEW
+  LEARNING
+  REVIEW
+  RELEARNING
+}
+
+// ─────────────────────────── Shared: Sefaria cache ──────────────────────────
+
+// Single source of all on-screen Aramaic. Text here is verbatim from the
+// Sefaria API (William Davidson Talmud) — never written by an LLM.
+model CachedRef {
+  id        String   @id @default(cuid())
+  ref       String   @unique // e.g. "Bava Metzia 10a:7"
+  vowel     String // vowelized original, verbatim
+  plain     String // nikud-stripped normalized parallel
+  enText    String? // Davidson English (for admin verification aid only)
+  fetchedAt DateTime @default(now())
+}
+
+// ───────────────────────── P2: Syntax Layering Engine ───────────────────────
+
+model Formula {
+  id         String  @id @default(cuid())
+  skeleton   String // function-word skeleton with {slot} markers
+  display    String? // representative vowelized rendering (verbatim Sefaria)
+  category   FormulaCategory
+  gloss      String? // English gloss of the pattern
+  verified   Boolean @default(false)
+  occurrences FormulaOccurrence[]
+  pairsA     FormulaPair[] @relation("CaseA")
+  pairsB     FormulaPair[] @relation("CaseB")
+  moveTypes  SugyaMoveType[] // P4 link: particles that trigger moves
+  nearMissesFrom NearMissExercise[] @relation("BaseFormula")
+  nearMissesTo   NearMissExercise[] @relation("VariantFormula")
+}
+
+enum FormulaCategory {
+  ACQUISITION // זכין / קנין
+  CONDITIONAL // אי… / אילימא
+  PRESUMPTION // חזקה
+  INFERENCE // כל שכן / מה מצינו
+  OBJECTION // objection-carrying
+  AGENCY // שליחות / transfer
+  COMPARISON // כי היכי ד…
+  OTHER
+}
+
+enum CaseCategory {
+  MONETARY // ממונות
+  MARITAL // גיטין / קידושין
+  RITUAL
+  DAMAGES // נזיקין
+  AGENCY
+  OTHER
+}
+
+model FormulaOccurrence {
+  id          String  @id @default(cuid())
+  formulaId   String
+  ref         String // Sefaria ref, e.g. "Bava Metzia 10a:7"
+  tractate    String
+  daf         String // e.g. "10a"
+  textVowel   String // verbatim vowelized Aramaic from Sefaria
+  textPlain   String
+  sugyaRef    String // enclosing sugya ref range
+  caseCategory CaseCategory @default(OTHER)
+  slotFillings Json? // observed content-word fillings of the skeleton slots
+  formula     Formula @relation(fields: [formulaId], references: [id])
+  pairsAsA    FormulaPair[] @relation("OccA")
+  pairsAsB    FormulaPair[] @relation("OccB")
+
+  @@index([formulaId])
+  @@index([tractate])
+}
+
+model FormulaPair {
+  id              String  @id @default(cuid())
+  caseAId         String // Formula occurrence taught first (INSIDE)
+  caseBId         String // occurrence the learner leins cold
+  formulaAId      String
+  formulaBId      String
+  distanceDaf     Int // surprise factor: how far apart across Shas
+  outcomeContrast Boolean @default(false) // same formula, different result — gold
+  contrastNotes   String? // evidence from the discovery engine
+  confidence      Float   @default(0)
+  verified        Boolean @default(false)
+  newWordBudget   Int     @default(5)
+  explainerAId    String? @unique
+  explainerBId    String? @unique
+  formulaA        Formula @relation("CaseA", fields: [formulaAId], references: [id])
+  formulaB        Formula @relation("CaseB", fields: [formulaBId], references: [id])
+  caseA           FormulaOccurrence @relation("OccA", fields: [caseAId], references: [id])
+  caseB           FormulaOccurrence @relation("OccB", fields: [caseBId], references: [id])
+  explainerA      Explainer? @relation("ExpA", fields: [explainerAId], references: [id])
+  explainerB      Explainer? @relation("ExpB", fields: [explainerBId], references: [id])
+  nearMisses      NearMissExercise[]
+
+  @@index([verified, confidence])
+}
+
+// OUTSIDE explainer for one case: mind map + slides + optional video script.
+// English only; any Aramaic shown alongside is composited from CachedRef text.
+model Explainer {
+  id       String  @id @default(cuid())
+  ref      String // the case it explains
+  title    String
+  mindmap  Json // { nodes: [{id,label,kind,x,y}], edges: [{from,to,label}] }
+  slides   Json // [{title, body, emphasis?}] — 4–7 slides
+  script   String? // optional video narration (behind feature flag)
+  verified Boolean @default(false)
+  pairAsA  FormulaPair? @relation("ExpA")
+  pairAsB  FormulaPair? @relation("ExpB")
+}
+
+// Acceptance DB for free-translation grading: per-occurrence acceptable
+// translations, used as grading ground truth alongside the Claude pass.
+model AcceptableTranslation {
+  id           String  @id @default(cuid())
+  occurrenceRef String // Sefaria ref of the occurrence
+  text         String // an acceptable full English rendering
+  verified     Boolean @default(false)
+
+  @@index([occurrenceRef])
+}
+
+// 2.6 near-miss mode: learned formula vs a one-function-word-different variant.
+model NearMissExercise {
+  id               String  @id @default(cuid())
+  pairId           String
+  baseFormulaId    String
+  variantFormulaId String
+  changedWord      String // the single function word that differs
+  question         String // "what practical difference does this change make?"
+  options          Json // [{id, text, correct}]
+  explanation      String
+  verified         Boolean @default(false)
+  pair             FormulaPair @relation(fields: [pairId], references: [id])
+  baseFormula      Formula @relation("BaseFormula", fields: [baseFormulaId], references: [id])
+  variantFormula   Formula @relation("VariantFormula", fields: [variantFormulaId], references: [id])
+}
+
+// ─────────────────────── P4: The Outside (argument logic) ───────────────────
+
+model SugyaMoveType {
+  id          String  @id @default(cuid())
+  name        String  @unique // Memra, Kushya, Terutz, Maskana, Ibaaya, ...
+  hebrewName  String?
+  particle    String? // triggering Aramaic formula/particle (plain form)
+  formulaId   String? // link to P2 Formula when the trigger is a mined formula
+  description String
+  soWhat      String // practical consequence: what to expect next in the sugya
+  color       String // node color in the flowchart
+  isQuestionType Boolean @default(false) // belongs to the question-form sub-taxonomy
+  demandsResolution Boolean? // kushya: yes; ibaaya: may stand unresolved
+  formula     Formula? @relation(fields: [formulaId], references: [id])
+  nodes       ArgumentNode[]
+  classes     ClassLesson[]
+}
+
+model TaggedSugya {
+  id          String  @id @default(cuid())
+  ref         String  @unique // Sefaria ref range
+  tractate    String
+  title       String
+  verified    Boolean @default(false)
+  aggadita    Boolean @default(false) // lowest priority content
+  nodes       ArgumentNode[]
+  edges       ArgumentEdge[]
+  mcQuestions MCQuestion[]
+  linksFrom   SugyaLink[] @relation("LinkFrom")
+  linksTo     SugyaLink[] @relation("LinkTo")
+}
+
+model ArgumentNode {
+  id           String @id @default(cuid())
+  sugyaId      String
+  moveTypeId   String
+  spanRef      String // Sefaria sub-ref; INSIDE text resolved via CachedRef
+  englishGloss String // the OUTSIDE rendering of this move
+  order        Int
+  sugya        TaggedSugya @relation(fields: [sugyaId], references: [id])
+  moveType     SugyaMoveType @relation(fields: [moveTypeId], references: [id])
+  edgesFrom    ArgumentEdge[] @relation("EdgeFrom")
+  edgesTo      ArgumentEdge[] @relation("EdgeTo")
+}
+
+model ArgumentEdge {
+  id       String @id @default(cuid())
+  sugyaId  String
+  fromId   String
+  toId     String
+  relation EdgeRelation
+  sugya    TaggedSugya  @relation(fields: [sugyaId], references: [id])
+  from     ArgumentNode @relation("EdgeFrom", fields: [fromId], references: [id])
+  to       ArgumentNode @relation("EdgeTo", fields: [toId], references: [id])
+}
+
+enum EdgeRelation {
+  OBJECTS_TO
+  RESOLVES
+  PROVES
+  REFUTES
+  CONCLUDES
+  DEPENDS_ON
+  RESPONDS_TO
+}
+
+// Obsidian-style logic links between sugyot sharing a move pattern.
+// Auto-suggested; suggestions until a human verifies.
+model SugyaLink {
+  id        String  @id @default(cuid())
+  fromId    String
+  toId      String
+  pattern   String // shared move-pattern signature, e.g. "KUSHYA>TERUTZ>KUSHYA>TEYUVTA"
+  verified  Boolean @default(false)
+  from      TaggedSugya @relation("LinkFrom", fields: [fromId], references: [id])
+  to        TaggedSugya @relation("LinkTo", fields: [toId], references: [id])
+
+  @@unique([fromId, toId, pattern])
+}
+
+model MCQuestion {
+  id       String  @id @default(cuid())
+  sugyaId  String
+  spanRef  String? // optional: the specific passage asked about
+  prompt   String // "What happened here?"
+  options  Json // [{id, text, correct}] — distractors = plausible wrong readings
+  verified Boolean @default(false)
+  sugya    TaggedSugya @relation(fields: [sugyaId], references: [id])
+}
+
+// 4.4 question-type classes: a teaching surface drawn from the taxonomy.
+model ClassLesson {
+  id          String  @id @default(cuid())
+  moveTypeId  String
+  title       String
+  body        Json // [{heading, text, exampleRefs: string[]}] — examples resolve via CachedRef
+  soWhat      String
+  nearMissPairId String? // link into P2's near-miss contrast drills
+  verified    Boolean @default(false)
+  order       Int     @default(0)
+  moveType    SugyaMoveType @relation(fields: [moveTypeId], references: [id])
+}
