@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
+import { ensureSession } from "./api";
 import NavBar from "./components/NavBar";
+import { Loading } from "./components/Status";
 import Landing from "./pages/Landing";
 import LearnRedirect from "./pages/LearnRedirect";
 import LearnPair from "./pages/LearnPair";
@@ -18,6 +21,29 @@ import AdminSugyot from "./pages/admin/AdminSugyot";
 export default function App() {
   const { pathname } = useLocation();
   const isLanding = pathname === "/";
+
+  // Ensure an anonymous session exists for ANY entry point (deep-link, refresh,
+  // direct nav to /quiz, /review, etc.) — not just the landing CTA. We gate
+  // route rendering on it so a page's first request never races ahead of the
+  // session POST (which would 401 with "missing x-user-id"). Idempotent: reuses
+  // the stored userId, hits /session/anon at most once. Keeps the "no signup,
+  // < 90s to learning" promise working from a cold URL.
+  const [sessionReady, setSessionReady] = useState(false);
+  useEffect(() => {
+    ensureSession()
+      .catch(() => {
+        /* network/server errors surface per-page via the error panes */
+      })
+      .finally(() => setSessionReady(true));
+  }, []);
+
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex flex-col">
       {!isLanding && <NavBar />}
