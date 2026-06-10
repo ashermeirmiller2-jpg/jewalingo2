@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jewoulingo — Learn to lein the Talmud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Frank+Ruhl+Libre:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --parchment: #faf6ef;
+  --ink: #1e1208;
+  --gold: #c9a227;
+  --ink-60: rgba(30,18,8,.6);
+  --ink-40: rgba(30,18,8,.4);
+  --ink-15: rgba(30,18,8,.15);
+  --ink-10: rgba(30,18,8,.1);
+  --gold-15: rgba(201,162,39,.15);
+  --gold-40: rgba(201,162,39,.4);
+  --gold-60: rgba(201,162,39,.6);
+  --shadow: 0 1px 3px rgba(30,18,8,.08), 0 4px 16px rgba(30,18,8,.06);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--parchment); color: var(--ink); }
+body {
+  font-family: 'EB Garamond', Georgia, serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+::selection { background: rgba(201,162,39,.3); }
+
+/* ── Utilities ── */
+.card {
+  background: rgba(255,255,255,.6);
+  border: 1px solid var(--ink-15);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.label-caps {
+  font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .25em; color: var(--gold);
+}
+.text-gold { color: var(--gold); }
+.text-muted { color: var(--ink-60); }
+
+/* ── Buttons ── */
+.btn-gold {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 12px 32px; border-radius: 9999px;
+  background: var(--gold); color: var(--parchment);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.15rem; font-weight: 600;
+  border: none; cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: filter .15s, transform .1s;
+  text-decoration: none;
+}
+.btn-gold:hover { filter: brightness(1.06); }
+.btn-gold:active { transform: scale(.97); }
+.btn-gold:disabled { opacity: .6; cursor: not-allowed; }
+.btn-outline {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 12px 24px; border-radius: 9999px;
+  background: transparent; color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.05rem;
+  border: 1px solid var(--ink-15); cursor: pointer;
+  transition: border-color .15s;
+  text-decoration: none;
+}
+.btn-outline:hover { border-color: var(--gold); }
+
+/* ── Pages ── */
+.page { display: none; flex: 1; }
+.page.active { display: block; }
+#page-landing.active { display: flex; flex-direction: column; }
+#page-learn.active { display: flex; flex-direction: column; }
+
+/* ── Navbar ── */
+#navbar {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(250,246,239,.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--gold-60);
+  display: none;
+}
+#navbar.visible { display: block; }
+.nav-inner {
+  max-width: 1152px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; height: 56px;
+  overflow-x: auto; gap: 2px;
+}
+.nav-brand {
+  font-weight: 600; font-size: 1.2rem; letter-spacing: .02em;
+  margin-right: 20px; white-space: nowrap; cursor: pointer;
+  color: var(--ink); background: none; border: none;
+  font-family: 'EB Garamond', Georgia, serif;
+}
+.nav-link {
+  padding: 6px 12px; font-size: 1rem; white-space: nowrap;
+  border-bottom: 2px solid transparent; color: var(--ink-60);
+  cursor: pointer; transition: color .15s, border-color .15s;
+  background: none; border-left: none; border-right: none; border-top: none;
+  font-family: 'EB Garamond', Georgia, serif;
+}
+.nav-link:hover { color: var(--ink); border-bottom-color: var(--gold-40); }
+.nav-link.active-link { color: var(--ink); border-bottom-color: var(--gold); }
+.nav-spacer { flex: 1; min-width: 12px; }
+.nav-stats {
+  display: flex; align-items: center; gap: 14px;
+  font-size: .9rem; white-space: nowrap; shrink: 0;
+}
+.streak { display: flex; align-items: center; gap: 4px; font-weight: 600; }
+.words-badge {
+  padding: 2px 10px; border-radius: 9999px;
+  background: var(--gold-15); border: 1px solid var(--gold-40);
+  font-weight: 500;
+}
+
+/* ─────────────────────────────────
+   LANDING
+───────────────────────────────── */
+#page-landing {
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.land-eyebrow {
+  font-size: .78rem; text-transform: uppercase; letter-spacing: .35em;
+  color: var(--gold); margin-bottom: 24px;
+  animation: fadeIn .6s ease both;
+}
+.land-h1 {
+  font-size: clamp(2.6rem, 6.5vw, 5rem);
+  font-weight: 600; line-height: 1.1; max-width: 800px;
+  animation: slideUp .6s .1s ease both;
+}
+.land-sub {
+  font-size: 1.2rem; color: var(--ink-60); max-width: 480px;
+  margin: 24px 0 40px;
+  animation: slideUp .6s .25s ease both;
+}
+.land-cta { animation: slideUp .5s .4s ease both; }
+.land-error { color: #b91c1c; font-style: italic; margin-top: 20px; font-size: 1rem; }
+
+/* ─────────────────────────────────
+   BROWSE
+───────────────────────────────── */
+.pg-wrap { max-width: 1152px; margin: 0 auto; padding: 40px 24px; }
+.pg-h1 { font-size: 2.5rem; margin-bottom: 6px; }
+.pg-sub { color: var(--ink-60); font-size: 1.05rem; margin-bottom: 28px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+.chip {
+  padding: 6px 16px; border-radius: 9999px; font-size: .92rem;
+  border: 1px solid var(--ink-15); color: var(--ink-60);
+  cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+  text-transform: capitalize;
+  font-family: 'EB Garamond', Georgia, serif;
+  background: transparent;
+}
+.chip:hover { border-color: var(--gold); color: var(--ink); }
+.chip.active { background: var(--gold); color: var(--parchment); border-color: var(--gold); }
+
+.pairs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 18px;
+}
+.pair-card {
+  padding: 22px; cursor: pointer;
+  transition: border-color .15s;
+  display: block;
+}
+.pair-card:hover { border-color: var(--gold-40); }
+.pair-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.pair-cat { font-size: .68rem; text-transform: uppercase; letter-spacing: .2em; color: var(--gold); }
+.pair-star { font-size: .8rem; color: var(--gold); }
+.pair-formula {
+  font-family: 'Frank Ruhl Libre', serif; direction: rtl;
+  font-size: 1.8rem; color: var(--gold); margin-bottom: 6px;
+}
+.pair-gloss { color: var(--ink-60); font-size: .97rem; margin-bottom: 14px; line-height: 1.5; }
+.pair-footer { display: flex; align-items: center; gap: 8px; font-size: .88rem; color: var(--ink-60); }
+.pair-daf-arrow { color: var(--gold); }
+.pair-badge {
+  margin-left: auto; padding: 2px 9px; border-radius: 9999px;
+  background: var(--gold-15); border: 1px solid var(--gold-40);
+  color: var(--ink); font-size: .82rem;
+}
+
+/* ─────────────────────────────────
+   LEARN FLOW
+───────────────────────────────── */
+.learn-wrap {
+  max-width: 768px; width: 100%;
+  margin: 0 auto; padding: 0 24px 100px;
+  flex: 1;
+}
+
+/* Progress dots */
+.prog-dots {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; padding: 16px 0 8px;
+}
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #d8cbb3;
+  transition: background .25s, transform .25s;
+  position: relative;
+}
+.dot.done { background: var(--ink); }
+.dot.cur { background: var(--gold); transform: scale(1.35); }
+.dot-tip {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-size: .68rem; color: var(--ink-60);
+  display: none; background: var(--parchment); padding: 2px 6px;
+  border-radius: 4px; border: 1px solid var(--ink-10); z-index: 5;
+}
+.dot:hover .dot-tip { display: block; }
+
+/* Step panels */
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+
+/* Explainer step */
+.exp-card { padding: 28px 32px; margin-bottom: 24px; }
+.exp-title { font-size: 1.7rem; font-weight: 600; margin-bottom: 10px; }
+.exp-body { font-size: 1.05rem; line-height: 1.78; color: var(--ink-60); margin-bottom: 16px; }
+.exp-move {
+  padding: 14px 18px; border-radius: 8px;
+  background: var(--gold-15); border: 1px solid var(--gold-40);
+  margin-top: 4px;
+}
+.exp-move-label {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .2em;
+  color: var(--gold); margin-bottom: 5px;
+}
+.exp-move-text { font-size: .97rem; color: var(--ink); line-height: 1.6; }
+.exp-note { color: var(--ink-60); font-style: italic; font-size: .95rem; margin-top: 16px; }
+
+/* insideA sub-panels */
+.sub-panel { display: none; }
+.sub-panel.active { display: block; }
+
+/* Word intro */
+.word-intro {
+  max-width: 400px; margin: 0 auto;
+  padding: 40px 36px; text-align: center;
+}
+.word-counter {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .3em;
+  color: var(--ink-40); margin-bottom: 24px;
+}
+.word-ar {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 3.6rem; direction: rtl; margin-bottom: 8px;
+  line-height: 1.2;
+}
+.word-bar { height: 4px; width: 64px; border-radius: 9999px; margin: 0 auto 22px; }
+.word-gloss { font-size: 1.6rem; margin-bottom: 12px; }
+.word-tag {
+  display: inline-block; padding: 4px 12px; border-radius: 9999px;
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .15em;
+}
+.word-tag.fn { border: 1px solid var(--gold); color: var(--gold); }
+.word-tag.ct { border: 1px solid var(--ink-15); color: var(--ink-40); }
+
+/* Sentence view */
+.sent-card { padding: 28px 32px; }
+.ar-sentence {
+  direction: rtl; text-align: right;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.85rem; line-height: 2.1;
+}
+.ar-word {
+  display: inline-block; padding: 2px 4px;
+  border-radius: 4px; cursor: pointer;
+  transition: background .12s;
+  position: relative;
+}
+.ar-word:hover { background: var(--gold-15); }
+.ar-word.hi { color: var(--gold); }
+.ar-word .word-popup {
+  display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--parchment); font-size: .78rem;
+  padding: 4px 10px; border-radius: 6px; white-space: nowrap; z-index: 10;
+  font-family: 'EB Garamond', Georgia, serif; direction: ltr;
+}
+.ar-word:hover .word-popup { display: block; }
+.skel-section {
+  margin-top: 28px; padding-top: 18px;
+  border-top: 1px solid var(--gold-40);
+}
+.skel-label {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .25em;
+  color: var(--ink-40); margin-bottom: 6px;
+}
+.skel-text {
+  font-family: 'Frank Ruhl Libre', serif; direction: rtl;
+  font-size: 1.55rem; color: var(--gold);
+}
+.skel-note { color: var(--ink-60); font-style: italic; font-size: .92rem; margin-top: 8px; }
+
+/* TapMatch exercise */
+.ex-label { font-size: .88rem; color: var(--ink-40); margin-bottom: 14px; }
+.match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.match-col { display: flex; flex-direction: column; gap: 8px; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.match-tile {
+  padding: 12px 14px; border-radius: 10px;
+  border: 2px solid var(--ink-15); background: rgba(255,255,255,.5);
+  cursor: pointer; transition: border-color .15s, background .15s;
+  font-size: 1rem; text-align: center;
+  font-family: 'EB Garamond', Georgia, serif;
+}
+.match-tile.ar-tile {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.45rem; direction: rtl;
+}
+.match-tile:hover:not(.matched):not(.sel) { border-color: var(--gold-40); }
+.match-tile.sel { border-color: var(--gold); background: var(--gold-15); }
+.match-tile.matched { border-color: #16a34a; background: #f0fdf4; color: #15803d; cursor: default; }
+.match-tile.wrong-flash { animation: shake .35s ease; border-color: #ef4444; background: #fef2f2; }
+
+/* Lein exercise */
+.lein-case { font-size: 1.05rem; color: var(--ink-60); margin-bottom: 20px; line-height: 1.65; }
+.lein-answer {
+  min-height: 68px; padding: 14px 16px;
+  border-radius: 10px; border: 2px dashed var(--gold-40);
+  background: rgba(255,255,255,.35);
+  direction: rtl; text-align: right;
+  font-family: 'Frank Ruhl Libre', serif; font-size: 1.75rem;
+  margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px;
+  align-items: center; min-height: 72px;
+}
+.lein-placeholder {
+  font-family: 'EB Garamond', Georgia, serif;
+  direction: ltr; color: var(--ink-40); font-size: .92rem; font-style: italic;
+}
+.ans-word {
+  cursor: pointer; padding: 0 3px;
+  border-radius: 4px; transition: background .12s;
+}
+.ans-word:hover { background: rgba(239,68,68,.12); }
+.lein-tiles {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 20px; direction: rtl;
+}
+.lein-tile {
+  padding: 8px 15px; border-radius: 8px;
+  border: 1px solid var(--ink-15); background: rgba(255,255,255,.6);
+  font-family: 'Frank Ruhl Libre', serif; font-size: 1.3rem;
+  cursor: pointer; transition: border-color .12s, opacity .2s;
+}
+.lein-tile:hover:not(.used) { border-color: var(--gold); }
+.lein-tile.used { opacity: .3; pointer-events: none; }
+.lein-feedback {
+  padding: 11px 16px; border-radius: 8px;
+  font-size: .97rem; margin-bottom: 14px; display: none;
+}
+.lein-feedback.ok { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+.lein-feedback.bad { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
+
+/* Contrast */
+.contrast-intro {
+  font-size: 1.05rem; color: var(--ink-60); margin-bottom: 20px; line-height: 1.65;
+}
+.contrast-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+@media (max-width: 580px) { .contrast-grid { grid-template-columns: 1fr; } }
+.contrast-case { padding: 22px; }
+.cc-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .2em; color: var(--gold); margin-bottom: 8px; }
+.cc-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 8px; }
+.cc-body { color: var(--ink-60); font-size: .93rem; line-height: 1.65; }
+.cc-outcome { margin-top: 12px; padding: 9px 13px; border-radius: 6px; font-weight: 600; font-size: .95rem; }
+.cc-outcome.allow { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+.cc-outcome.deny { background: #fff7ed; border: 1px solid #fdba74; color: #c2410c; }
+.contrast-bridge {
+  text-align: center; font-size: .88rem; color: var(--ink-40); margin-bottom: 20px;
+  font-style: italic;
+}
+.contrast-insight {
+  padding: 18px 22px; border-radius: 8px;
+  background: var(--gold-15); border: 1px solid var(--gold-40);
+  font-size: .97rem; line-height: 1.65; margin-bottom: 24px;
+}
+.contrast-insight strong { color: var(--gold); }
+
+/* Completion */
+.completion {
+  max-width: 480px; margin: 0 auto;
+  padding: 88px 24px; text-align: center;
+}
+.comp-star { font-size: 3.8rem; margin-bottom: 20px; }
+.comp-h1 { font-size: 2.6rem; font-weight: 600; margin-bottom: 10px; }
+.comp-body { color: var(--ink-60); font-size: 1.1rem; margin-bottom: 36px; line-height: 1.7; }
+.comp-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+/* ─────────────────────────────────
+   QUIZ
+───────────────────────────────── */
+.quiz-wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px; }
+.quiz-passage {
+  padding: 22px 26px; margin-bottom: 22px;
+  direction: rtl; text-align: right;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 1.55rem; line-height: 2;
+}
+.quiz-prompt { font-size: 1.45rem; margin-bottom: 22px; line-height: 1.4; }
+.opt-btn {
+  display: block; width: 100%; text-align: left;
+  padding: 12px 18px; border-radius: 12px;
+  border: 2px solid var(--ink-15); background: rgba(255,255,255,.5);
+  font-family: 'EB Garamond', Georgia, serif; font-size: 1.08rem;
+  cursor: pointer; transition: border-color .15s, background .15s;
+  margin-bottom: 10px; line-height: 1.5;
+}
+.opt-btn:hover:not(:disabled) { border-color: var(--gold-40); background: var(--gold-15); }
+.opt-btn.correct { border-color: #16a34a; background: #f0fdf4; color: #15803d; cursor: default; }
+.opt-btn.wrong { border-color: #ef4444; background: #fef2f2; color: #dc2626; animation: shake .35s ease; cursor: default; }
+.opt-btn.dim { opacity: .45; cursor: not-allowed; }
+.quiz-feedback { display: none; margin-top: 28px; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.quiz-feedback.show { display: flex; }
+.qf-msg { font-size: 1rem; }
+.qf-msg.ok { color: #15803d; }
+.qf-msg.bad { color: var(--ink-60); }
+.quiz-done {
+  max-width: 460px; margin: 0 auto;
+  padding: 88px 24px; text-align: center;
+}
+.qd-icon { font-size: 3.5rem; margin-bottom: 14px; }
+.qd-h1 { font-size: 2.2rem; margin-bottom: 8px; }
+.qd-body { color: var(--ink-60); font-size: 1.05rem; }
+
+/* ─────────────────────────────────
+   REVIEW
+───────────────────────────────── */
+.rev-wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px; }
+.rev-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.rev-count { color: var(--ink-60); font-size: .9rem; }
+.rev-card {
+  padding: 36px 32px; min-height: 200px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; margin-bottom: 20px;
+}
+.rev-recall { font-size: .68rem; text-transform: uppercase; letter-spacing: .15em; color: var(--ink-40); margin-bottom: 14px; }
+.rev-formula {
+  font-family: 'Frank Ruhl Libre', serif; direction: rtl;
+  font-size: 2.9rem; color: var(--gold); margin-bottom: 12px;
+}
+.rev-gloss { font-size: 1.3rem; color: var(--ink-60); }
+.rev-gloss.hidden { visibility: hidden; }
+.rev-lein-kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .15em; color: var(--gold); margin-bottom: 10px; }
+.rev-lein-body { font-size: 1.3rem; }
+.rating-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.rating-btn {
+  padding: 11px 8px; border-radius: 11px; border: 2px solid;
+  font-family: 'EB Garamond', Georgia, serif; font-size: 1rem; font-weight: 500;
+  cursor: pointer; background: transparent; transition: background .15s;
+}
+.rating-btn:hover { background: rgba(255,255,255,.65); }
+.r-again { border-color: #f87171; color: #dc2626; }
+.r-hard  { border-color: #fbbf24; color: #d97706; }
+.r-good  { border-color: #34d399; color: #059669; }
+.r-easy  { border-color: var(--gold); color: var(--gold); }
+.rev-empty { text-align: center; padding: 88px 24px; }
+.re-icon { font-size: 3.5rem; margin-bottom: 14px; }
+.re-h1 { font-size: 2.1rem; margin-bottom: 8px; }
+.re-body { color: var(--ink-60); font-size: 1.05rem; }
+
+/* ─────────────────────────────────
+   OUTSIDE / CLASSES placeholders
+───────────────────────────────── */
+.coming-wrap {
+  max-width: 480px; margin: 0 auto;
+  padding: 80px 24px; text-align: center;
+}
+.coming-seal { font-size: 3rem; margin-bottom: 16px; }
+.coming-h1 { font-size: 2rem; margin-bottom: 8px; }
+.coming-body { color: var(--ink-60); font-size: 1.05rem; margin-bottom: 28px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     NAVBAR
+══════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <button class="nav-brand" onclick="goPage('landing')">Jewou<span class="text-gold">lingo</span></button>
+    <button class="nav-link" data-page="learn" onclick="goPage('learn')">Learn</button>
+    <button class="nav-link" data-page="browse" onclick="goPage('browse')">Browse</button>
+    <button class="nav-link" data-page="outside" onclick="goPage('outside')">The Outside</button>
+    <button class="nav-link" data-page="classes" onclick="goPage('classes')">Classes</button>
+    <button class="nav-link" data-page="quiz" onclick="goPage('quiz')">Quiz</button>
+    <button class="nav-link" data-page="review" onclick="goPage('review')">Review</button>
+    <div class="nav-spacer"></div>
+    <div class="nav-stats">
+      <span class="streak">🔥 <span id="stat-streak">3</span></span>
+      <span class="words-badge" id="stat-words">12 words</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════
+     LANDING
+══════════════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+  <p class="land-eyebrow">Jewoulingo</p>
+  <h1 class="land-h1">Learn to lein the Talmud</h1>
+  <p class="land-sub">
+    Decode the INSIDE word by word. Master the OUTSIDE move by move.
+    One sugya at a time — no signup, no quiz, just learning.
+  </p>
+  <div class="land-cta">
+    <button class="btn-gold" onclick="goPage('learn')" style="font-size:1.25rem;padding:14px 40px;">
+      Start learning
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     BROWSE
+══════════════════════════════════════════════════ -->
+<div id="page-browse" class="page">
+  <div class="pg-wrap">
+    <h1 class="pg-h1">Browse the pairs</h1>
+    <p class="pg-sub">Every pair shares one formula across two distant cases. Master one, lein the other.</p>
+
+    <div class="chips">
+      <button class="chip active" onclick="filterPairs(this, null)">All</button>
+      <button class="chip" onclick="filterPairs(this,'INFERENCE')">inference</button>
+      <button class="chip" onclick="filterPairs(this,'ACQUISITION')">acquisition</button>
+      <button class="chip" onclick="filterPairs(this,'CONDITIONAL')">conditional</button>
+      <button class="chip" onclick="filterPairs(this,'PRESUMPTION')">presumption</button>
+      <button class="chip" onclick="filterPairs(this,'AGENCY')">agency</button>
+    </div>
+
+    <div class="pairs-grid" id="pairs-grid">
+      <!-- injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     LEARN
+══════════════════════════════════════════════════ -->
+<div id="page-learn" class="page">
+  <div class="learn-wrap">
+
+    <!-- Progress dots -->
+    <div class="prog-dots" id="prog-dots">
+      <div class="dot cur" id="dot-0"><span class="dot-tip">Case A — outside</span></div>
+      <div class="dot"     id="dot-1"><span class="dot-tip">Case A — inside</span></div>
+      <div class="dot"     id="dot-2"><span class="dot-tip">Case B — outside</span></div>
+      <div class="dot"     id="dot-3"><span class="dot-tip">Lein it!</span></div>
+      <div class="dot"     id="dot-4"><span class="dot-tip">Contrast</span></div>
+    </div>
+
+    <!-- Step 0 · explainerA -->
+    <div class="step-panel active" id="step-0">
+      <p class="label-caps" style="margin-bottom:8px;">Case A · the outside</p>
+      <div class="card exp-card">
+        <h2 class="exp-title">The Seller's Claim</h2>
+        <p class="exp-body">
+          Reuven sells his field to Shimon and later claims the sale was conditional —
+          "I only agreed to sell on the condition you'd return it within 30 days."
+          Shimon says no such condition was made. The money has already changed hands.
+          Who do we believe?
+        </p>
+        <div class="exp-move">
+          <div class="exp-move-label">The Talmudic move · INFERENCE</div>
+          <div class="exp-move-text">
+            Reuven could have simply denied the sale ever happened — that would have been a
+            <em>stronger</em> claim. Since he admits the sale but makes the weaker, conditional
+            claim, we believe him. The fact that a more sweeping denial was available supports
+            the credibility of the narrower one.
+          </div>
+        </div>
+        <div class="exp-move" style="margin-top:10px;">
+          <div class="exp-move-label">The formula</div>
+          <div class="exp-move-text" style="font-family:'Frank Ruhl Libre',serif;font-size:1.55rem;direction:rtl;color:var(--gold);">
+            מִגּוֹ
+          </div>
+          <div class="exp-move-text" style="margin-top:4px;color:var(--ink-60);">
+            "miggo" — since he could have said something stronger, believe the weaker claim.
+          </div>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="advanceStep()">Got the shape — show me the INSIDE →</button>
+    </div>
+
+    <!-- Step 1 · insideA -->
+    <div class="step-panel" id="step-1">
+      <p class="label-caps" style="margin-bottom:6px;">Case A · the inside</p>
+      <p class="text-muted" style="font-size:.92rem;margin-bottom:20px;">Bava Kamma 75b</p>
+
+      <!-- sub 0: word intro מִגּוֹ -->
+      <div class="sub-panel active" id="sub-0">
+        <div class="card word-intro">
+          <div class="word-counter">New word 1 of 2</div>
+          <div class="word-ar">מִגּוֹ</div>
+          <div class="word-bar" style="background:var(--gold);"></div>
+          <div class="word-gloss">since / from within</div>
+          <span class="word-tag fn">Function word — the pattern</span>
+          <div style="margin-top:28px;">
+            <button class="btn-gold" onclick="advanceSub()">Next word →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- sub 1: word intro מַהֵימַן -->
+      <div class="sub-panel" id="sub-1">
+        <div class="card word-intro">
+          <div class="word-counter">New word 2 of 2</div>
+          <div class="word-ar">מַהֵימַן</div>
+          <div class="word-bar" style="background:var(--gold);"></div>
+          <div class="word-gloss">is believed / trusted</div>
+          <span class="word-tag fn">Function word — the pattern</span>
+          <div style="margin-top:28px;">
+            <button class="btn-gold" onclick="advanceSub()">Into the sentence →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- sub 2: sentence view -->
+      <div class="sub-panel" id="sub-2">
+        <div class="card sent-card">
+          <div class="ar-sentence">
+            <span class="ar-word hi">מִגּוֹ<span class="word-popup">since / from within</span></span>
+            <span> </span>
+            <span class="ar-word hi">דְּאִי<span class="word-popup">for if / that if</span></span>
+            <span> </span>
+            <span class="ar-word">בָּעֵי<span class="word-popup">he wanted / could have</span></span>
+            <span> </span>
+            <span class="ar-word">אָמַר<span class="word-popup">he said / could say</span></span>
+            <span> </span>
+            <span class="ar-word">פָּטוּר<span class="word-popup">exempt / free of obligation</span></span>
+            <span> </span>
+            <span class="ar-word hi">מַהֵימַן<span class="word-popup">is believed</span></span>
+          </div>
+          <div class="skel-section">
+            <div class="skel-label">The formula skeleton</div>
+            <div class="skel-text">מִגּוֹ דְּאִי … מַהֵימַן</div>
+            <div class="skel-note">
+              The gold words are the constant; the rest is just this case.
+              Hover any word for its pshat.
+            </div>
+          </div>
+        </div>
+        <button class="btn-gold" style="margin-top:24px;" onclick="advanceSub()">Practice it →</button>
+      </div>
+
+      <!-- sub 3: TapMatch exercise -->
+      <div class="sub-panel" id="sub-3">
+        <div class="card" style="padding:24px 28px;">
+          <div class="label-caps" style="margin-bottom:4px;">Match the word to its meaning</div>
+          <div class="ex-label">Tap an Aramaic word, then its English meaning.</div>
+          <div class="match-grid" id="match-grid">
+            <div class="match-col" id="match-left"></div>
+            <div class="match-col" id="match-right"></div>
+          </div>
+          <div id="match-done-msg" style="display:none;margin-top:16px;color:#15803d;font-size:.97rem;">
+            ✓ All matched — you know these words.
+          </div>
+        </div>
+        <button class="btn-gold" id="match-next-btn" style="margin-top:24px;display:none;" onclick="advanceStep()">
+          Continue →
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2 · explainerB -->
+    <div class="step-panel" id="step-2">
+      <p class="label-caps" style="margin-bottom:8px;">Case B · the outside</p>
+      <div class="card exp-card">
+        <h2 class="exp-title">The Conditional Get</h2>
+        <p class="exp-body">
+          A man sends a <em>get</em> (divorce document) to his wife via an agent, adding:
+          "It is valid only if I haven't cancelled it before it reaches her." The wife receives the
+          get. The husband claims he cancelled it verbally — the wife says she heard nothing.
+          Is she free to remarry?
+        </p>
+        <div class="exp-move">
+          <div class="exp-move-label">The same Talmudic move · INFERENCE</div>
+          <div class="exp-move-text">
+            The husband could have claimed he never sent any <em>get</em> at all — a stronger denial.
+            Since he admits the get but raises the weaker claim of verbal cancellation,
+            the <em>miggo</em> runs <em>against</em> him: his willingness to concede the get's existence
+            undercuts his claim to have cancelled it. She is believed.
+          </div>
+        </div>
+        <p class="exp-note">No Aramaic yet — first hold the shape of this argument. The INSIDE comes next, and you will lein it yourself.</p>
+      </div>
+      <button class="btn-gold" onclick="advanceStep()">I'm ready to lein it →</button>
+    </div>
+
+    <!-- Step 3 · leinB -->
+    <div class="step-panel" id="step-3">
+      <p class="label-caps" style="margin-bottom:8px;">Lein it!</p>
+      <p class="lein-case">
+        The get arrived. Build the formula that determines her status —
+        tap the words in order to reconstruct the argument.
+      </p>
+      <div class="lein-answer card" id="lein-answer">
+        <span class="lein-placeholder" id="lein-placeholder">Tap words below to build the phrase…</span>
+      </div>
+      <div class="lein-tiles" id="lein-tiles"></div>
+      <div class="lein-feedback" id="lein-fb"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-gold" id="lein-check-btn" onclick="checkLein()">Check →</button>
+        <button class="btn-outline" onclick="resetLein()">Reset</button>
+        <button class="btn-gold" id="lein-next-btn" onclick="advanceStep()" style="display:none;">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 · contrast -->
+    <div class="step-panel" id="step-4">
+      <p class="label-caps" style="margin-bottom:8px;">Contrast</p>
+      <p class="contrast-intro">
+        The same formula — מִגּוֹ — runs through both cases. But its direction flips.
+        Look at who benefits and why.
+      </p>
+      <div class="contrast-grid">
+        <div class="card contrast-case">
+          <div class="cc-label">Case A · Bava Kamma 75b</div>
+          <div class="cc-title">The Seller's Claim</div>
+          <div class="cc-body">
+            Reuven admits the sale but claims it was conditional. He could have denied the
+            sale outright — a stronger position. The miggo gives credibility to his weaker claim.
+          </div>
+          <div class="cc-outcome deny">⇒ Miggo helps the SELLER — conditional sale upheld</div>
+        </div>
+        <div class="card contrast-case">
+          <div class="cc-label">Case B · Gittin 34a</div>
+          <div class="cc-title">The Conditional Get</div>
+          <div class="cc-body">
+            The husband admits sending the get but claims cancellation. He could have denied
+            sending any get — a stronger denial. The miggo runs <em>against</em> him: his
+            admission weakens his cancellation claim.
+          </div>
+          <div class="cc-outcome allow">⇒ Miggo helps the WIFE — she is free to remarry</div>
+        </div>
+      </div>
+      <div class="contrast-bridge">Same formula · same inference structure · opposite beneficiary</div>
+      <div class="card contrast-insight">
+        <strong>The pattern you've learned:</strong> מִגּוֹ is not a conclusion — it's a
+        <em>move</em>. Its direction always follows the same logic: whoever could have made
+        the stronger claim but didn't gets the inference. Once you can spot the formula,
+        you can follow the argument in any tractate.
+      </div>
+      <button class="btn-gold" onclick="showCompletion()">Finish →</button>
+    </div>
+
+    <!-- Completion -->
+    <div class="step-panel" id="step-done">
+      <div class="completion">
+        <div class="comp-star">✦</div>
+        <h1 class="comp-h1">Pair complete</h1>
+        <p class="comp-body">
+          You leined a passage you'd never seen — the pattern carried you.
+          It enters your review queue so it stays leinable.
+        </p>
+        <div class="comp-actions">
+          <button class="btn-gold" onclick="goPage('browse')">Next pair</button>
+          <button class="btn-outline" onclick="goPage('review')">Review queue</button>
+          <button class="btn-outline" onclick="restartLearn()">Replay</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     QUIZ
+══════════════════════════════════════════════════ -->
+<div id="page-quiz" class="page">
+  <div class="quiz-wrap">
+    <div id="quiz-active">
+      <p class="label-caps" style="margin-bottom:22px;">What happened here?</p>
+      <div id="quiz-passage-wrap"></div>
+      <h1 class="quiz-prompt" id="quiz-prompt"></h1>
+      <div id="quiz-options"></div>
+      <div class="quiz-feedback" id="quiz-feedback">
+        <span class="qf-msg" id="qf-msg"></span>
+        <button class="btn-gold" onclick="nextQuiz()">Next →</button>
+      </div>
+    </div>
+    <div id="quiz-done-screen" class="quiz-done" style="display:none;">
+      <div class="qd-icon">✓</div>
+      <h1 class="qd-h1">Done for now</h1>
+      <p class="qd-body" id="qd-body"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     REVIEW
+══════════════════════════════════════════════════ -->
+<div id="page-review" class="page">
+  <div class="rev-wrap">
+    <div id="review-active">
+      <div class="rev-header">
+        <p class="label-caps">Review · spaced repetition</p>
+        <p class="rev-count" id="rev-count"></p>
+      </div>
+      <div class="card rev-card" id="rev-card"></div>
+      <div id="rev-controls"></div>
+    </div>
+    <div id="rev-empty" class="rev-empty" style="display:none;">
+      <div class="re-icon">🔥</div>
+      <h1 class="re-h1">Nothing due right now</h1>
+      <p class="re-body">Your spaced-repetition queue is clear. Go learn something new.</p>
+      <div style="margin-top:24px;">
+        <button class="btn-gold" onclick="goPage('learn')">Back to learning</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     OUTSIDE (placeholder)
+══════════════════════════════════════════════════ -->
+<div id="page-outside" class="page">
+  <div class="coming-wrap">
+    <div class="coming-seal">📜</div>
+    <h1 class="coming-h1">The Outside</h1>
+    <p class="coming-body">
+      Full sugya-level case analysis — the big-picture argument structure for each tractate.
+      Coming once you've built up your formula bank.
+    </p>
+    <button class="btn-gold" onclick="goPage('browse')">Browse pairs instead</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     CLASSES (placeholder)
+══════════════════════════════════════════════════ -->
+<div id="page-classes" class="page">
+  <div class="coming-wrap">
+    <div class="coming-seal">🏛</div>
+    <h1 class="coming-h1">Classes</h1>
+    <p class="coming-body">
+      Question-type classes — see all the sugyot that share a class of legal problem
+      (agency, conditional transfers, oath structures…) side by side.
+    </p>
+    <button class="btn-gold" onclick="goPage('browse')">Browse pairs instead</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════
+   DATA
+═══════════════════════════════════ */
+const PAIRS = [
+  {
+    id: 1, category: 'INFERENCE',
+    skeleton: 'מִגּוֹ', gloss: 'since he could have said X, believe Y',
+    tractateA: 'Bava Kamma', tractateB: 'Gittin', daf: 87, contrast: true,
+  },
+  {
+    id: 2, category: 'ACQUISITION',
+    skeleton: 'קִנְיַן אַגַּב', gloss: 'acquisition by attachment — land carries movables with it',
+    tractateA: 'Bava Metzia', tractateB: 'Ketubot', daf: 45, contrast: false,
+  },
+  {
+    id: 3, category: 'CONDITIONAL',
+    skeleton: 'תְּנַאי כָּפוּל', gloss: 'a double condition — both sides must be stated',
+    tractateA: 'Kiddushin', tractateB: 'Gittin', daf: 31, contrast: false,
+  },
+  {
+    id: 4, category: 'PRESUMPTION',
+    skeleton: 'אֲנַן סָהֲדֵי', gloss: 'we are witnesses — the court supplies what everyone knows',
+    tractateA: 'Bava Batra', tractateB: 'Shevuot', daf: 62, contrast: false,
+  },
+  {
+    id: 5, category: 'AGENCY',
+    skeleton: 'שְׁלוּחוֹ שֶׁל אָדָם', gloss: 'an agent stands in place of the principal',
+    tractateA: 'Kiddushin', tractateB: 'Bava Kamma', daf: 54, contrast: false,
+  },
+  {
+    id: 6, category: 'INFERENCE',
+    skeleton: 'כָּל דְּמְקַנֵּי', gloss: 'whoever acquires the greater acquires the lesser',
+    tractateA: 'Bava Kamma', tractateB: 'Bava Batra', daf: 38, contrast: false,
+  },
+];
+
+const QUIZ_Qs = [
+  {
+    passage: 'מִגּוֹ דְּאִי בָּעֵי אָמַר פָּטוּר מַהֵימַן',
+    prompt: 'What legal move does this passage perform?',
+    options: [
+      { id: 'a', text: 'Miggo inference — since he could have made a stronger claim, believe the weaker one' },
+      { id: 'b', text: 'Categorical ban — ruling out an entire class of transactions' },
+      { id: 'c', text: 'Conditional acquisition — the transfer depends on a future event' },
+      { id: 'd', text: 'Anan Sahadi — the court itself acts as a witness to a known fact' },
+    ],
+    correct: 'a',
+  },
+  {
+    prompt: 'What does מִגּוֹ literally mean?',
+    options: [
+      { id: 'a', text: 'since / from within' },
+      { id: 'b', text: 'on condition that' },
+      { id: 'c', text: 'we presume / the default is' },
+      { id: 'd', text: 'it follows / therefore' },
+    ],
+    correct: 'a',
+  },
+  {
+    prompt: 'What makes a miggo argument valid?',
+    options: [
+      { id: 'a', text: 'Two valid witnesses confirm the stronger claim was available' },
+      { id: 'b', text: 'The claimant had a stronger available claim but chose the weaker — implying honesty' },
+      { id: 'c', text: 'The bet din independently verified the facts before the hearing' },
+      { id: 'd', text: 'The opposing party failed to appear or respond to the claim' },
+    ],
+    correct: 'b',
+  },
+];
+
+const REVIEW_ITEMS = [
+  { kind: 'FORMULA', skeleton: 'מִגּוֹ', gloss: 'miggo — since he could have said X, believe Y' },
+  { kind: 'FORMULA', skeleton: 'תְּנַאי', gloss: 'tenai — a condition; if unfulfilled the act is void' },
+  { kind: 'LEIN', summary: 'Lein again: the miggo argument in Gittin 34a', link: 'learn' },
+];
+
+/* ═══════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════ */
+let currentPage = 'landing';
+
+function goPage(id) {
+  document.getElementById('page-' + currentPage).classList.remove('active');
+  document.getElementById('page-' + id).classList.add('active');
+  currentPage = id;
+
+  const navbar = document.getElementById('navbar');
+  if (id === 'landing') {
+    navbar.classList.remove('visible');
+  } else {
+    navbar.classList.add('visible');
+  }
+
+  // Update active nav link
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.toggle('active-link', el.dataset.page === id);
+  });
+
+  // Init page when first visited
+  if (id === 'browse') renderPairs(null);
+  if (id === 'quiz')   initQuiz();
+  if (id === 'review') initReview();
+  if (id === 'learn')  { /* flow already set up */ }
+
+  window.scrollTo(0, 0);
+}
+
+/* ═══════════════════════════════════
+   BROWSE
+═══════════════════════════════════ */
+let activeCategory = null;
+
+function filterPairs(chipEl, cat) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  chipEl.classList.add('active');
+  activeCategory = cat;
+  renderPairs(cat);
+}
+
+function renderPairs(cat) {
+  const grid = document.getElementById('pairs-grid');
+  const filtered = cat ? PAIRS.filter(p => p.category === cat) : PAIRS;
+  grid.innerHTML = filtered.map(p => `
+    <div class="card pair-card" onclick="goPage('learn')">
+      <div class="pair-top">
+        <span class="pair-cat">${p.category.toLowerCase()}</span>
+        ${p.contrast ? '<span class="pair-star">★ outcome contrast</span>' : ''}
+      </div>
+      <div class="pair-formula">${p.skeleton}</div>
+      <div class="pair-gloss">${p.gloss}</div>
+      <div class="pair-footer">
+        <span>${p.tractateA}</span>
+        <span class="pair-daf-arrow">⇄</span>
+        <span>${p.tractateB}</span>
+        <span class="pair-badge">${p.daf} daf apart</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ═══════════════════════════════════
+   LEARN FLOW
+═══════════════════════════════════ */
+let learnStep = 0;    // 0–4 + 'done'
+let learnSub  = 0;    // within insideA (step 1): 0–3
+
+// TapMatch state
+let matchArSel   = null;  // index in MATCH_PAIRS
+let matchGlSel   = null;  // index in shuffled glosses
+let matchMatched = new Set(); // matched aramaic indices
+
+const MATCH_PAIRS = [
+  { aramaic: 'מִגּוֹ',    gloss: 'since / from within' },
+  { aramaic: 'בָּעֵי',   gloss: 'he wanted / could have' },
+  { aramaic: 'מַהֵימַן', gloss: 'is believed' },
+];
+const GLOSS_SHUFFLE = [1, 0, 2]; // indices into MATCH_PAIRS for right column
+
+// Lein state
+const LEIN_WORDS = ['מִגּוֹ', 'דְּאִי', 'בָּעֵי', 'מַהֵימַן'];
+const LEIN_SCRAMBLE = [2, 0, 3, 1]; // display order (indices into LEIN_WORDS)
+let leinAnswer = []; // array of word indices (into LEIN_WORDS)
+let leinChecked = false;
+
+function setStep(n) {
+  // Remove active from all step panels
+  document.querySelectorAll('.step-panel').forEach(el => el.classList.remove('active'));
+  // Update dots
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('dot-' + i);
+    if (!d) continue;
+    d.classList.remove('cur', 'done');
+    if (i < n) d.classList.add('done');
+    else if (i === n) d.classList.add('cur');
+  }
+  learnStep = n;
+
+  if (n <= 4) {
+    document.getElementById('step-' + n).classList.add('active');
+    document.getElementById('prog-dots').style.display = 'flex';
+    if (n === 1) initInsideA();
+    if (n === 3) initLein();
+  }
+}
+
+function advanceStep() {
+  if (learnStep < 4) {
+    setStep(learnStep + 1);
+  } else {
+    showCompletion();
+  }
+}
+
+function showCompletion() {
+  document.querySelectorAll('.step-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('step-done').classList.add('active');
+  document.getElementById('prog-dots').style.display = 'none';
+  // Update word count stat
+  const ws = document.getElementById('stat-words');
+  ws.textContent = '16 words';
+}
+
+function restartLearn() {
+  learnSub = 0;
+  leinAnswer = [];
+  leinChecked = false;
+  matchArSel = null;
+  matchGlSel = null;
+  matchMatched = new Set();
+  setStep(0);
+}
+
+/* insideA sub-panels */
+function initInsideA() {
+  learnSub = 0;
+  document.querySelectorAll('.sub-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('sub-0').classList.add('active');
+  // Set up match tiles
+  buildMatchTiles();
+  // Hide next button
+  document.getElementById('match-next-btn').style.display = 'none';
+  document.getElementById('match-done-msg').style.display = 'none';
+  matchArSel = null;
+  matchGlSel = null;
+  matchMatched = new Set();
+}
+
+function advanceSub() {
+  document.getElementById('sub-' + learnSub).classList.remove('active');
+  learnSub++;
+  const next = document.getElementById('sub-' + learnSub);
+  if (next) {
+    next.classList.add('active');
+  } else {
+    advanceStep();
+  }
+}
+
+/* TapMatch */
+function buildMatchTiles() {
+  const left = document.getElementById('match-left');
+  const right = document.getElementById('match-right');
+  left.innerHTML = MATCH_PAIRS.map((p, i) => `
+    <div class="match-tile ar-tile" id="ar-${i}" onclick="selectAr(${i})">${p.aramaic}</div>
+  `).join('');
+  right.innerHTML = GLOSS_SHUFFLE.map((pIdx, i) => `
+    <div class="match-tile" id="gl-${i}" onclick="selectGl(${i})">${MATCH_PAIRS[pIdx].gloss}</div>
+  `).join('');
+}
+
+function selectAr(i) {
+  if (matchMatched.has(i)) return;
+  // Deselect previous
+  document.querySelectorAll('.match-tile.ar-tile').forEach(el => el.classList.remove('sel'));
+  matchArSel = i;
+  document.getElementById('ar-' + i).classList.add('sel');
+  tryMatch();
+}
+
+function selectGl(i) {
+  const arIdx = GLOSS_SHUFFLE[i]; // which MATCH_PAIRS entry this gloss belongs to
+  if (matchMatched.has(arIdx)) return;
+  document.querySelectorAll('.match-tile:not(.ar-tile)').forEach(el => el.classList.remove('sel'));
+  matchGlSel = i;
+  document.getElementById('gl-' + i).classList.add('sel');
+  tryMatch();
+}
+
+function tryMatch() {
+  if (matchArSel === null || matchGlSel === null) return;
+  const arIdx = matchArSel;
+  const glPairIdx = GLOSS_SHUFFLE[matchGlSel];
+
+  if (arIdx === glPairIdx) {
+    // Correct
+    const arEl = document.getElementById('ar-' + arIdx);
+    const glEl = document.getElementById('gl-' + matchGlSel);
+    arEl.classList.remove('sel');
+    glEl.classList.remove('sel');
+    arEl.classList.add('matched');
+    glEl.classList.add('matched');
+    matchMatched.add(arIdx);
+    matchArSel = null;
+    matchGlSel = null;
+    if (matchMatched.size === MATCH_PAIRS.length) {
+      document.getElementById('match-done-msg').style.display = 'block';
+      document.getElementById('match-next-btn').style.display = 'inline-flex';
+    }
+  } else {
+    // Wrong — flash red then reset
+    const arEl = document.getElementById('ar-' + arIdx);
+    const glEl = document.getElementById('gl-' + matchGlSel);
+    arEl.classList.add('wrong-flash');
+    glEl.classList.add('wrong-flash');
+    setTimeout(() => {
+      arEl.classList.remove('sel', 'wrong-flash');
+      glEl.classList.remove('sel', 'wrong-flash');
+      matchArSel = null;
+      matchGlSel = null;
+    }, 400);
+  }
+}
+
+/* Lein */
+function initLein() {
+  leinAnswer = [];
+  leinChecked = false;
+  const fb = document.getElementById('lein-fb');
+  fb.className = 'lein-feedback';
+  fb.textContent = '';
+  document.getElementById('lein-check-btn').style.display = 'inline-flex';
+  document.getElementById('lein-next-btn').style.display = 'none';
+  renderLein();
+}
+
+function renderLein() {
+  // Answer area
+  const ansEl = document.getElementById('lein-answer');
+  const ph = document.getElementById('lein-placeholder');
+  if (leinAnswer.length === 0) {
+    ansEl.innerHTML = '<span class="lein-placeholder" id="lein-placeholder">Tap words below to build the phrase…</span>';
+  } else {
+    ansEl.innerHTML = leinAnswer.map((wi, pos) =>
+      `<span class="ans-word" onclick="removeWord(${pos})">${LEIN_WORDS[wi]}</span>`
+    ).join(' ');
+  }
+  // Tiles
+  const tilesEl = document.getElementById('lein-tiles');
+  tilesEl.innerHTML = LEIN_SCRAMBLE.map((wi, ti) =>
+    `<div class="lein-tile ${leinAnswer.includes(wi) ? 'used' : ''}" onclick="tapWord(${wi})">${LEIN_WORDS[wi]}</div>`
+  ).join('');
+}
+
+function tapWord(wi) {
+  if (leinChecked) return;
+  if (leinAnswer.includes(wi)) return;
+  leinAnswer.push(wi);
+  renderLein();
+}
+
+function removeWord(pos) {
+  if (leinChecked) return;
+  leinAnswer.splice(pos, 1);
+  const fb = document.getElementById('lein-fb');
+  fb.className = 'lein-feedback';
+  renderLein();
+}
+
+function resetLein() {
+  leinAnswer = [];
+  leinChecked = false;
+  document.getElementById('lein-fb').className = 'lein-feedback';
+  document.getElementById('lein-check-btn').style.display = 'inline-flex';
+  document.getElementById('lein-next-btn').style.display = 'none';
+  renderLein();
+}
+
+function checkLein() {
+  if (leinAnswer.length < LEIN_WORDS.length) {
+    const fb = document.getElementById('lein-fb');
+    fb.className = 'lein-feedback bad';
+    fb.textContent = 'Place all four words before checking.';
+    return;
+  }
+  const correct = [0, 1, 2, 3]; // correct order indices
+  const isCorrect = leinAnswer.every((wi, i) => wi === correct[i]);
+  const fb = document.getElementById('lein-fb');
+  leinChecked = isCorrect;
+  if (isCorrect) {
+    fb.className = 'lein-feedback ok';
+    fb.textContent = '✓ Correct — you leined the miggo.';
+    document.getElementById('lein-check-btn').style.display = 'none';
+    document.getElementById('lein-next-btn').style.display = 'inline-flex';
+  } else {
+    fb.className = 'lein-feedback bad';
+    fb.textContent = 'Not quite — the formula reads right-to-left: מִגּוֹ first, מַהֵימַן last.';
+  }
+}
+
+/* ═══════════════════════════════════
+   QUIZ
+═══════════════════════════════════ */
+let quizIdx = 0;
+let quizChosen = null;
+let quizCorrect = 0;
+let quizInited = false;
+
+function initQuiz() {
+  if (quizInited) return;
+  quizInited = true;
+  quizIdx = 0;
+  quizChosen = null;
+  quizCorrect = 0;
+  renderQuiz();
+}
+
+function renderQuiz() {
+  if (quizIdx >= QUIZ_Qs.length) {
+    document.getElementById('quiz-active').style.display = 'none';
+    const done = document.getElementById('quiz-done-screen');
+    done.style.display = 'block';
+    document.getElementById('qd-body').textContent =
+      `You worked through ${QUIZ_Qs.length} question${QUIZ_Qs.length === 1 ? '' : 's'} ` +
+      `and got ${quizCorrect} right. Come back when more are due.`;
+    return;
+  }
+  const q = QUIZ_Qs[quizIdx];
+  quizChosen = null;
+
+  // Passage
+  const pw = document.getElementById('quiz-passage-wrap');
+  if (q.passage) {
+    pw.innerHTML = `<div class="card quiz-passage">${q.passage}</div>`;
+  } else {
+    pw.innerHTML = '';
+  }
+
+  document.getElementById('quiz-prompt').textContent = q.prompt;
+
+  const opts = document.getElementById('quiz-options');
+  opts.innerHTML = q.options.map(o =>
+    `<button class="opt-btn" id="opt-${o.id}" onclick="chooseQuiz('${o.id}')">${o.text}</button>`
+  ).join('');
+
+  document.getElementById('quiz-feedback').classList.remove('show');
+}
+
+function chooseQuiz(id) {
+  if (quizChosen) return;
+  quizChosen = id;
+  const q = QUIZ_Qs[quizIdx];
+  const isCorrect = id === q.correct;
+  if (isCorrect) quizCorrect++;
+
+  q.options.forEach(o => {
+    const el = document.getElementById('opt-' + o.id);
+    if (o.id === q.correct) el.classList.add('correct');
+    else if (o.id === id && !isCorrect) el.classList.add('wrong');
+    else el.classList.add('dim');
+    el.disabled = true;
+  });
+
+  const fb = document.getElementById('quiz-feedback');
+  fb.classList.add('show');
+  const msg = document.getElementById('qf-msg');
+  msg.className = 'qf-msg ' + (isCorrect ? 'ok' : 'bad');
+  msg.textContent = isCorrect
+    ? 'Correct — you read the move.'
+    : 'Not quite — see the highlighted answer.';
+}
+
+function nextQuiz() {
+  quizIdx++;
+  renderQuiz();
+}
+
+/* ═══════════════════════════════════
+   REVIEW
+═══════════════════════════════════ */
+let revIdx = 0;
+let revRevealed = false;
+let revInited = false;
+
+function initReview() {
+  if (revInited) return;
+  revInited = true;
+  revIdx = 0;
+  revRevealed = false;
+  renderReview();
+}
+
+function renderReview() {
+  if (revIdx >= REVIEW_ITEMS.length) {
+    document.getElementById('review-active').style.display = 'none';
+    document.getElementById('rev-empty').style.display = 'block';
+    return;
+  }
+  const item = REVIEW_ITEMS[revIdx];
+  revRevealed = false;
+
+  document.getElementById('rev-count').textContent =
+    `${revIdx + 1} / ${REVIEW_ITEMS.length}`;
+
+  const card = document.getElementById('rev-card');
+  if (item.kind === 'FORMULA') {
+    card.innerHTML = `
+      <div class="rev-recall">Recall this formula</div>
+      <div class="rev-formula">${item.skeleton}</div>
+      <div class="rev-gloss hidden" id="rev-gloss">${item.gloss}</div>
+    `;
+  } else {
+    card.innerHTML = `
+      <div class="rev-lein-kind">${item.kind}</div>
+      <div class="rev-lein-body">${item.summary}</div>
+      <button class="btn-outline" style="margin-top:20px;" onclick="goPage('${item.link}')">Open it →</button>
+    `;
+  }
+
+  const controls = document.getElementById('rev-controls');
+  if (item.kind === 'FORMULA') {
+    controls.innerHTML = `
+      <button class="btn-gold reveal-btn" style="width:100%;" onclick="revealCard()">Reveal</button>
+    `;
+  } else {
+    controls.innerHTML = ratingGrid();
+  }
+}
+
+function revealCard() {
+  revRevealed = true;
+  document.getElementById('rev-gloss').classList.remove('hidden');
+  document.getElementById('rev-controls').innerHTML = ratingGrid();
+}
+
+function ratingGrid() {
+  return `
+    <div class="rating-grid">
+      <button class="rating-btn r-again" onclick="gradeReview(1)">Again</button>
+      <button class="rating-btn r-hard"  onclick="gradeReview(2)">Hard</button>
+      <button class="rating-btn r-good"  onclick="gradeReview(3)">Good</button>
+      <button class="rating-btn r-easy"  onclick="gradeReview(4)">Easy</button>
+    </div>
+  `;
+}
+
+function gradeReview(rating) {
+  // In the real app this POSTs to FSRS. Here we just advance.
+  revIdx++;
+  // Update streak display for fun
+  if (rating >= 3) {
+    const sw = document.getElementById('stat-streak');
+    sw.textContent = parseInt(sw.textContent) + 0; // keep same
+  }
+  renderReview();
+}
+
+/* ═══════════════════════════════════
+   BOOT
+═══════════════════════════════════ */
+// Pre-init browse so chips are ready
+renderPairs(null);
+</script>
+</body>
+</html>
