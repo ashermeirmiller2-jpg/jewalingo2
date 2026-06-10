@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-parchment text-ink;
+  }
+  body {
+    @apply font-garamond antialiased min-h-screen;
+  }
+  h1, h2, h3, h4 {
+    @apply font-garamond;
+  }
+  ::selection {
+    background: rgba(201, 162, 39, 0.3);
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white/60 border border-ink/10 rounded-xl shadow-card;
+  }
+  .gold-underline {
+    @apply border-b-2 border-gold;
+  }
+}
